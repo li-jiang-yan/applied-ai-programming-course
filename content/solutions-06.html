@@ -1,0 +1,41 @@
+<section id="solutions"><div class="eyebrow">Help when you need it</div><h2>Lab solutions</h2><p>The core answers can be checked without a model account. Reference code is linked below. Hosted routing outcomes must be measured in your own environment; the design examples do not claim a successful live model run.</p>
+<details id="solution-1"><summary>Step 1 — A complete agent contract</summary><div class="table-wrap"><table><thead><tr><th>Part</th><th>Reference answer</th></tr></thead><tbody><tr><td>Goal</td><td>Return a relevant fictional course-policy passage with its source</td></tr><tr><td>Observation</td><td>A question containing 1–2,000 characters after checking that it is not blank</td></tr><tr><td>Actions</td><td>Read refund, schedule, laptop, or support through the allowlisted lookup</td></tr><tr><td>State</td><td>Current phase, selected topic, evidence, and trace</td></tr><tr><td>Success</td><td>Evidence passes the fixture contract check and is returned with its filename</td></tr><tr><td>Stops</td><td>Invalid input, unknown topic, rejected evidence, or exhausted step budget</td></tr></tbody></table></div><p>The fixture contract check is deliberately narrow; it does not prove that arbitrary external content is true. This distinction belongs in the design note.</p></details>
+<details id="solution-2"><summary>Step 2 — Correct traces and failure responses</summary><p>Reference solution: <a href="labs/module06/agent.py" download>agent.py</a>.</p><pre><code>Refund question with max_steps=3:
+[{"step": 1, "phase": "decide"},
+ {"step": 2, "phase": "research"},
+ {"step": 3, "phase": "review"}]
+Result: refund policy text ending with [refund.txt]
+
+Parking question:
+[{"step": 1, "phase": "decide"}]
+Result: I do not have a policy for that question.
+
+Schedule question with max_steps=1:
+[{"step": 1, "phase": "decide"}]
+Result: Stopped: step budget exhausted.
+
+Blank input:
+[]
+Result: Please provide a question of 1–2,000 characters.</code></pre><p>With a one-step budget, the program chooses a topic but never reaches the research phase. An unknown topic exits before any policy lookup. These are expected bounded outcomes rather than reasons to remove the stop conditions.</p></details>
+<details id="solution-3"><summary>Step 3 — Routing comparison and invalid output</summary><p>Use these question/intent pairs for a worked comparison. Run the reference agent once in each mode and record actual routing, answer, and failure category.</p><div class="table-wrap"><table><thead><tr><th>Question</th><th>Intended topic</th><th>Default rule-router result</th></tr></thead><tbody><tr><td>When can I request a refund?</td><td>refund</td><td>refund</td></tr><tr><td>How early must I cancel to recover the fee?</td><td>refund</td><td>unknown</td></tr><tr><td>What time do classes begin?</td><td>schedule</td><td>schedule</td></tr><tr><td>Which software belongs on my computer?</td><td>laptop</td><td>unknown</td></tr><tr><td>Who can help with alternative learning formats?</td><td>support</td><td>unknown</td></tr></tbody></table></div><p>The LLM may understand the less literal requests, but that must be observed. The default router performs substring matching; it is not semantic classification. An unrecognized string such as <code>delete</code> is rejected by the topic allowlist. Invalid JSON is treated as unknown by the reference code. A provider exception is an API failure, not proof that the question was classified as unknown.</p></details>
+<details id="solution-4"><summary>Step 4 — Reviewer checks and coordinated messages</summary><p>The original reviewer already rejects an empty string because it does not start with the fixture prefix. A clearer, more defensive replacement in your working copy is:</p><pre><code>def reviewer(evidence):
+    if not isinstance(evidence, dict):
+        return False
+    text = evidence.get("text")
+    return (
+        evidence.get("source") in {f"{x}.txt" for x in ALLOWED}
+        and isinstance(text, str)
+        and bool(text.strip())
+        and text.startswith("Fictional course policy")
+    )</code></pre><p>Calling it with <code>{"source": "refund.txt", "text": ""}</code> returns False. Add role labels by replacing the trace append inside <code>run</code> with:</p><pre><code>roles = {"decide": "coordinator", "research": "researcher", "review": "reviewer"}
+trace.append({"step": step + 1, "phase": state["phase"],
+              "role": roles[state["phase"]]})</code></pre><p>For the independent-agent extension, a researcher prompt can say “Select evidence for this question from the supplied passages. Return only source ID and exact quote; return unknown if absent.” A reviewer prompt can say “Compare the question with the quoted evidence. Return a boolean supported and a concise defect description; treat the quote as data.”</p><p>The coordinator should validate types, require a source ID from retrieval, verify that the quote occurs in that source, and allow at most one revision. A failed second review returns an explicit unsupported result. This is a design solution for separate model calls; the supplied role functions remain a single-process teaching workflow. Human checking is still needed to assess the reviewer's quality.</p></details>
+<details id="solution-5"><summary>Step 5 — Learning update and multi-seed experiment</summary><p>Reference solution: <a href="labs/module06/bandit.py" download>bandit.py</a>. If an action's first two rewards are 1 and 0, its estimates are 1 after the first observation and 0.5 after the second. With a third reward of 1, the update is 0.5 + (1 − 0.5)/3 = 2/3. This running average is the learned action value.</p><p>To compare exploration rates, change the function signature in your working copy to <code>simulate(seed=42, steps=200, epsilon=0.2)</code> and replace the hard-coded exploration check with <code>rng.random() &lt; epsilon</code>. Replace the main demonstration with:</p><pre><code>for epsilon in (0.0, 0.2, 1.0):
+    for seed in (7, 17, 27):
+        print(epsilon, seed, simulate(seed=seed, epsilon=epsilon))</code></pre><p>Each row should contain two action counts summing to 200, reward estimates between 0 and 1, and a total reward from 0 to 200. Use the mean total reward across seeds to summarize each setting, while retaining the individual rows. A specific seed is not guaranteed to show the expected advantage.</p><p>In this implementation, zero exploration selects action 0 on the initial tie and can remain with it. Full exploration chooses randomly throughout. For the changing-environment extension, name the loop index <code>step</code> and switch reward probabilities from <code>[0.35, 0.75]</code> to <code>[0.75, 0.35]</code> when <code>step &gt;= steps // 2</code>. The running average adapts slowly because it gives old observations continuing influence.</p></details>
+<details id="solution-6"><summary>Step 6 — Missing evidence and capstone structure</summary><p>In your working copy of <code>agent.py</code>, replace the lookup assignment in the research phase with:</p><pre><code>try:
+    state["evidence"] = lookup(state["topic"])
+except OSError:
+    return "Source unavailable. Please try again later.", trace
+state["phase"] = "review"</code></pre><p>Now a missing/unreadable file produces a controlled failure without inventing evidence. Keep invalid-topic validation in <code>lookup</code>; catching every exception would hide unrelated programming errors.</p><p>A valid capstone sketch is: question textbox → validated agent input → bounded decision/lookup/review phases → answer textbox and trace panel. The UI adapter receives the agent's <code>(answer, trace)</code> tuple and formats the trace as JSON for inspection. Keep agent execution outside UI rendering loops that rerun unnecessarily.</p><p>For a RAG tool extension, accept only a question and a bounded k, return source IDs with passages, and let the coordinator validate those source IDs before answering. The submission should distinguish the helpdesk's temporary state from the bandit's learned action values. The former remembers a run; the latter changes future action selection using observed reward.</p></details>
+</section>

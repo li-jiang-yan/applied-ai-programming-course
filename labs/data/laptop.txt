@@ -1,0 +1,1 @@
+Fictional course policy L1. Bring a laptop with Python 3.11 installed. Internet access is needed for package installation and hosted model calls. A GPU is optional for introductory labs.

@@ -1,0 +1,4 @@
+sentence-transformers>=3,<6
+openai>=1.68,<3
+datasets>=3,<5
+accelerate>=1,<2
