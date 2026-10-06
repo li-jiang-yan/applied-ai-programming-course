@@ -8,6 +8,7 @@ import sys
 from urllib.parse import unquote, urlsplit
 import xml.etree.ElementTree as ET
 import zipfile
+from build_site import PROJECT_FILE
 
 ROOT = Path(__file__).resolve().parent
 
@@ -54,6 +55,16 @@ def main():
         for objective in objectives:
             assert html.escape(objective) in text, f'Missing objective: {objective}'
         parsed[path] = parser
+    project_path = ROOT/PROJECT_FILE
+    project_text = project_path.read_text(encoding='utf-8')
+    project_parser = Page()
+    project_parser.feed(project_text)
+    assert {'overview', 'prepare', 'review', 'summary'} <= project_parser.ids
+    for number in range(1, 7):
+        assert f'project-{number}' in project_parser.ids
+    assert project_text.count('class="project"') == 6
+    assert 'id="complete"' not in project_text
+    parsed[project_path] = project_parser
     for path, parser in parsed.items():
         for link in parser.links:
             url = urlsplit(link)
@@ -77,6 +88,6 @@ def main():
     assert 'do not have a policy' in run('module06/agent.py','Is parking included?')
     assert 'budget exhausted' in run('module06/agent.py','refund','--max-steps','1')
     assert 'estimated_rewards' in run('module06/bandit.py')
-    print('PASS: six pages; objectives, local links/anchors, images, embeds, source syntax, archive, and offline labs.')
+    print('PASS: six core modules and optional projects; objectives, local links/anchors, images, embeds, source syntax, archive, and offline labs.')
 
 if __name__ == '__main__': main()

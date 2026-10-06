@@ -1,4 +1,4 @@
-"""Build the six course pages using only the Python standard library."""
+"""Build six core modules and an optional project module using the standard library."""
 from pathlib import Path
 import html
 import re
@@ -9,6 +9,7 @@ NAMES = ['LLMs & your first AI app', 'Interfaces with Gradio & Streamlit', 'Lang
 TITLES = ['From language models to working applications', 'Make your AI application usable', 'Connect models, tools, and data', 'Give your model evidence to work with', 'Teach a pretrained model a new task', 'Build agents that decide, act, and learn']
 DESCRIPTIONS = ['Understand the building blocks, make your first model calls, and turn local course notes into a question-answering app.', 'Build two interfaces for the same model. Learn how inputs, state, feedback, and deployment shape the user experience.', 'Compose a Python pipeline, prototype it visually, and call your exported workflows from an application.', 'Build a grounded helpdesk, inspect its retrieval, tune its components, and measure what actually improves.', 'Prepare trustworthy datasets, adapt pretrained models, and compare results on examples they have never seen.', 'Move from fixed rules to bounded tool use, coordinated roles, and a small agent that learns from feedback.']
 FILES = ['index.html'] + [f'module-{i:02}.html' for i in range(2,7)]
+PROJECT_FILE = 'projects.html'
 LEVELS = ['Foundation', 'Foundation → intermediate', 'Intermediate', 'Intermediate → advanced', 'Intermediate → advanced', 'Intermediate → advanced']
 MAPS = [[1,1,2,2,3,4,5],[1,2,3,4,5],[1,1,2,3,4,5],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,8],[1,2,3,4,5,6]]
 EXTRA_VIDEOS = {
@@ -21,6 +22,20 @@ EXTRA_VIDEOS = {
 
 def bullets(section):
     return re.findall(r'^- (.+)', section, re.M)
+
+def course_nav(active):
+    nav = ''.join(f'<a href="{f}"'+(' aria-current="page"' if active == f else '')+f'><b>{j+1:02}</b><span>{html.escape(NAMES[j])}</span></a>' for j,f in enumerate(FILES))
+    return nav + f'<a href="{PROJECT_FILE}"'+(' aria-current="page"' if active == PROJECT_FILE else '')+'><b>+</b><span>Project studio · Optional</span></a>'
+
+def build_projects():
+    body = (ROOT/'content'/'projects.html').read_text(encoding='utf-8')
+    page = f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Six optional hands-on AI projects with milestones, starter files, evaluation guidance, and links to the relevant core course modules."><title>Optional module · Project studio | Applied AI Studio</title><link rel="stylesheet" href="assets/style.css"><script src="assets/course.js" defer></script></head>
+<body data-module="projects"><a class="skip" href="#main">Skip to projects</a><header class="topbar"><a class="brand" href="index.html"><b>ai</b> Applied AI Studio</a><span>6 CORE MODULES &nbsp; / &nbsp; OPTIONAL PROJECT STUDIO</span><a href="labs.zip" download>Lab files ↓</a></header>
+<div class="layout"><aside class="sidebar"><div class="eyebrow">Your learning path</div><nav class="course-nav" aria-label="Modules">{course_nav(PROJECT_FILE)}</nav><progress value="0" max="6" aria-label="Core course completion"></progress><p class="progress-text small" aria-live="polite">0 of 6 modules marked complete</p><nav class="toc" aria-label="On this page"><a href="#overview">Choose a project</a><a href="#prepare">Project method</a><a href="#project-1">Study-card maker</a><a href="#project-2">Feedback explorer</a><a href="#project-3">Document evidence desk</a><a href="#project-4">Explainer workflow</a><a href="#project-5">Ticket classifier</a><a href="#project-6">Support assistant</a><a href="#review">Review your work</a><a href="#summary">Summary</a></nav></aside>
+<main id="main"><header class="hero"><div class="eyebrow">Optional module · Learn by building</div><h1>Put your skills into a project</h1><p>Choose a practical problem, reuse what you have learned, and build something you can demonstrate and evaluate.</p><div class="chips"><span>6 project briefs</span><span>Foundation → advanced</span><span>Self-directed</span></div><a class="button" href="#overview">Choose your project →</a></header>
+{body}
+<nav class="pager" aria-label="Continue learning"><a href="module-06.html">← Module 6</a><a class="button" href="index.html">Revisit the core course →</a></nav><footer class="footer">Applied AI Studio · Optional project practice · Core completion remains six modules.<br>These are project briefs with reference approaches; build and evaluate your own implementation.</footer></main></div></body></html>'''
+    (ROOT/PROJECT_FILE).write_text(page, encoding='utf-8')
 
 def diagram(name, title, boxes, caption):
     # Original vector teaching illustrations, not simulated product screenshots.
@@ -57,7 +72,7 @@ def main():
         audience=bullets(source.split('## Who Should Attend')[1].split('## PREREQUISITES')[0])
         prereq=bullets(source.split('## PREREQUISITES')[1].split('## Overview')[0])
         objectives=bullets(source.split('## Learning Objectives')[1])
-        nav=''.join(f'<a href="{f}"'+(' aria-current="page"' if j==i-1 else '')+f'><b>{j+1:02}</b><span>{html.escape(NAMES[j])}</span></a>' for j,f in enumerate(FILES))
+        nav=course_nav(FILES[i-1])
         rows=''.join(f'<tr><td>{n}</td><td>{html.escape(o)}{" <strong>(Flowise lab optional)</strong>" if i == 3 and "Flowise" in o else ""}</td><td><a href="#lesson-{MAPS[i-1][n-1]}">Lesson {MAPS[i-1][n-1]}</a> + lab</td></tr>' for n,o in enumerate(objectives,1))
         body=(ROOT/'content'/f'module-{i:02}.html').read_text(encoding='utf-8')
         solutions=(ROOT/'content'/f'solutions-{i:02}.html').read_text(encoding='utf-8')
@@ -80,7 +95,7 @@ def main():
             return f'<p><a href="labs/{path}" download>Download {html.escape(path)}</a></p><pre><code>{html.escape((ROOT/"labs"/path).read_text(encoding="utf-8"))}</code></pre>'
         body=re.sub(r'\{\{code:([^}]+)\}\}',embed,body)
         prev=f'<a href="{FILES[i-2]}">← Module {i-1}</a>' if i>1 else '<a href="#overview">Back to overview</a>'
-        nxt=f'<a class="button" href="{FILES[i]}">Module {i+1} →</a>' if i<6 else '<a class="button" href="index.html">Revisit the course →</a>'
+        nxt=f'<a class="button" href="{FILES[i]}">Module {i+1} →</a>' if i<6 else f'<a class="button" href="{PROJECT_FILE}">Optional project studio →</a>'
         page=f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="{DESCRIPTIONS[i-1]}"><title>Module {i} · {NAMES[i-1]} | Applied AI Studio</title><link rel="stylesheet" href="assets/style.css"><script src="assets/course.js" defer></script></head>
 <body data-module="{i}"><a class="skip" href="#main">Skip to lesson</a><header class="topbar"><a class="brand" href="index.html"><b>ai</b> Applied AI Studio</a><span>PUBLIC LEARNING SERIES &nbsp; / &nbsp; 6 PRACTICAL MODULES</span><a href="labs.zip" download>Lab files ↓</a></header>
 <div class="layout"><aside class="sidebar"><div class="eyebrow">Your learning path</div><nav class="course-nav" aria-label="Modules">{nav}</nav><progress value="0" max="6" aria-label="Course completion"></progress><p class="progress-text small" aria-live="polite">0 of 6 modules marked complete</p><nav class="toc" aria-label="On this page"><a href="#overview">Overview & outcomes</a><a href="#lecture">Read the lecture</a><a href="#watch">Watch & learn</a><a href="#lab">Guided lab</a><a href="#solutions">Lab solutions</a><a href="#check">Check your understanding</a><a href="#summary">Module summary</a></nav></aside>
@@ -89,10 +104,11 @@ def main():
 {body}
 <label class="complete"><input type="checkbox" id="complete">I completed the lab and can explain the module outcomes.</label><p class="small">Progress is stored in this browser when storage is available. It is a personal checklist, not a certificate or assessment record.</p><nav class="pager" aria-label="Continue learning">{prev}{nxt}</nav><footer class="footer">Applied AI Studio · Original teaching text and illustrations · Reference review: 25 September 2026.<br>External videos belong to their creators. Playback, captions, accounts, and model availability depend on the provider.</footer></main></div></body></html>'''
         (ROOT/FILES[i-1]).write_text(page,encoding='utf-8')
+    build_projects()
     with zipfile.ZipFile(ROOT/'labs.zip','w',zipfile.ZIP_DEFLATED) as z:
         for path in (ROOT/'labs').rglob('*'):
             if path.is_file() and '__pycache__' not in path.parts:
                 z.write(path,path.relative_to(ROOT))
-    print('Built six module pages, twelve illustrations, and labs.zip.')
+    print('Built six core modules, the optional project module, twelve illustrations, and labs.zip.')
 
 if __name__=='__main__': main()

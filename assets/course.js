@@ -8,9 +8,9 @@ function renderProgress() {
   const count = new Set(completed.filter(x => /^[1-6]$/.test(x))).size;
   document.querySelector("progress").value = count;
   document.querySelector(".progress-text").textContent = `${count} of 6 modules marked complete`;
-  completion.checked = completed.includes(moduleId);
+  if (completion) completion.checked = completed.includes(moduleId);
 }
-completion.addEventListener("change", () => {
+completion?.addEventListener("change", () => {
   completed = completed.filter(x => x !== moduleId);
   if (completion.checked) completed.push(moduleId);
   try { localStorage.setItem(key, JSON.stringify(completed)); } catch { /* Progress remains available in this page session. */ }
