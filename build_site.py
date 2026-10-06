@@ -40,7 +40,7 @@ DIAGRAMS = [
 ('m1-rag','Your first document question-answering app',[('Index',['course.txt → chunks','Chunks → embeddings']),('Retrieve',['Question → embedding','Select matching chunks']),('Answer',['Context + question → LLM','Show answer and sources'])],'Lab 1 • Hosted embedding and generation calls send text outside your computer.'),
 ('m2-ui','One model, two interface styles',[('Inputs',['Review text','Threshold + display mode']),('Function',['Validate → classify','Return label and score']),('Outputs',['Prediction + uncertainty','Session request counter'])],'Lab 2 • The same predict function powers Gradio and Streamlit.'),
 ('m2-deploy','From your laptop to a hosted demo',[('Package',['app.py + backend.py','requirements.txt']),('Configure',['Choose hosting runtime','Set secrets on server']),('Verify',['Open in another browser','Test errors and concurrency'])],'Lab 2 • A successful local run is only the first deployment checkpoint.'),
-('m3-flow','Draw the same pipeline in both visual tools',[('Input',['Chat Input / question','A named input variable']),('Compose',['Prompt template','Chat model + credentials']),('Output',['Chat Output / response','Save → export flow JSON'])],'Lab 3 • Node labels vary by release; preserve the input → prompt → model contract.'),
+('m3-flow','Build in Langflow; Flowise is optional',[('Input',['Chat Input / question','A named input variable']),('Compose',['Prompt template','Chat model + credentials']),('Output',['Chat Output / response','Save → export flow JSON'])],'Lab 3 • Node labels vary by release; preserve the input → prompt → model contract.'),
 ('m3-api','A flow export and an API call are different artifacts',[('Export',['Download workflow JSON','Remove embedded secrets']),('Restore',['Import into runtime','Reconnect credentials']),('Call',['Python → runtime API','Parse response JSON'])],'Lab 3 • A JSON export is not a standalone Python application.'),
 ('m4-retrieve','Trace an answer back to a source',[('Question',['When can I get a refund?','Embed the query']),('Evidence',['refund.txt / chunk 1','7 days before the start']),('Answer',['State the deadline','Attach the source filename'])],'Lab 4 • Inspect retrieved chunks before judging generated prose.'),
 ('m4-eval','Evaluate components separately',[('Retrieval',['Gold relevant source IDs','Recall@k and rank']),('Generation',['Supported claims','Correctness and abstention']),('Operation',['Latency and token use','Compare before / after'])],'Lab 4 • Better wording cannot compensate for missing evidence.'),
@@ -58,7 +58,7 @@ def main():
         prereq=bullets(source.split('## PREREQUISITES')[1].split('## Overview')[0])
         objectives=bullets(source.split('## Learning Objectives')[1])
         nav=''.join(f'<a href="{f}"'+(' aria-current="page"' if j==i-1 else '')+f'><b>{j+1:02}</b><span>{html.escape(NAMES[j])}</span></a>' for j,f in enumerate(FILES))
-        rows=''.join(f'<tr><td>{n}</td><td>{html.escape(o)}</td><td><a href="#lesson-{MAPS[i-1][n-1]}">Lesson {MAPS[i-1][n-1]}</a> + lab</td></tr>' for n,o in enumerate(objectives,1))
+        rows=''.join(f'<tr><td>{n}</td><td>{html.escape(o)}{" <strong>(Flowise lab optional)</strong>" if i == 3 and "Flowise" in o else ""}</td><td><a href="#lesson-{MAPS[i-1][n-1]}">Lesson {MAPS[i-1][n-1]}</a> + lab</td></tr>' for n,o in enumerate(objectives,1))
         body=(ROOT/'content'/f'module-{i:02}.html').read_text(encoding='utf-8')
         solutions=(ROOT/'content'/f'solutions-{i:02}.html').read_text(encoding='utf-8')
         step_number = 0
